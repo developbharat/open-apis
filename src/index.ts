@@ -1,12 +1,12 @@
 import * as t from "@sinclair/typebox";
 import express from "express";
-import { RouteBuilder } from "./Route";
+import { Route } from "./Route";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-export const CreateArticleRoute = RouteBuilder.setPath("get", "/articles/:id/:name")
+export const CreateArticleRoute = Route.setPath("get", "/articles/:id/:name")
   .setParams(
     t.Object({
       id: t.String({
@@ -33,46 +33,21 @@ export const CreateArticleRoute = RouteBuilder.setPath("get", "/articles/:id/:na
       name: t.String({ minLength: 5 }),
     }),
   )
-  .setMiddlewares()
+  .setMiddlewares(async (req, res) => {
+    console.log("hello brother...");
+    throw new Error("I am throwing this");
+    return res.end();
+  })
   .setHandle(() => {
     console.log(
       "You will receive valid data here, and feel free to raise any exceptions of type CustomException from this function.",
     );
-    return { name: "jonson" };
+    return { name: "jonson", age: 20, marks: 400 };
   })
   .build();
 
 // handle requests using our route definitions
-app.route(CreateArticleRoute.path)[CreateArticleRoute.method](async (req, res) => {
-  try {
-    // validate params
-    const isParamsException = CreateArticleRoute.params.isValid(req.params);
-    if (!!isParamsException) throw isParamsException;
-
-    // validate data
-    const reqData = { ...req.query, ...req.body };
-    const isDataException = CreateArticleRoute.req_data.isValid(reqData);
-    if (!!isDataException) throw isDataException;
-
-    // execute middlewares
-    for (const middleware of CreateArticleRoute.middlewares) {
-      await middleware();
-    }
-
-    // execute request handlers
-    const result = await CreateArticleRoute.handle();
-
-    // clean result from handler
-    const isResultException = CreateArticleRoute.res_data.isValid(result);
-    if (!!isResultException) throw isResultException;
-    const cleaned = CreateArticleRoute.res_data.clean(result);
-
-    // Return cleaned data
-    return res.json(cleaned);
-  } catch (error) {
-    return res.json({ error: (error as Error).message });
-  }
-});
+app.route(CreateArticleRoute.path)[CreateArticleRoute.method](CreateArticleRoute.__handle);
 
 app.use(async (req, res, next) => {
   return res.json({ success: true });
@@ -81,3 +56,33 @@ app.use(async (req, res, next) => {
 app.listen(4000, () => {
   console.log("Server started at http://localhost:4000");
 });
+
+import { Type, JavaScriptTypeBuilder, SchemaOptions } from "@sinclair/typebox";
+
+class MyClass {
+  @Field("String", {})
+  name: string;
+
+  @Field("Number")
+  age: number;
+}
+
+function Field<T extends keyof JavaScriptTypeBuilder>(type: T, props: SchemaOptions) {
+  return (target: any, propertyKey: string) => {
+    (target.constructor as any).schema = (target.constructor as any).schema || {};
+    (target.constructor as any).schema[propertyKey] = {
+      type: type,
+      props: props,
+    };
+  };
+}
+
+const example = new MyClass();
+example.name = "hello";
+example.age = 20;
+
+// console.log({ name: example.name, age: example.age });
+
+const mySchema = Type.Object((MyClass as any).schema);
+
+console.log(mySchema);

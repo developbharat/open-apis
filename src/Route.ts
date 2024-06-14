@@ -1,57 +1,44 @@
-import { FormatRegistry, TSchema, Type } from "@sinclair/typebox";
-import { TypeCheck, TypeCompiler } from "@sinclair/typebox/compiler";
+import { TSchema } from "@sinclair/typebox";
+import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
-import { IRoute } from "express";
+import { OpenRequest, OpenResponse } from "./contracts/core";
 type IMethod = "get" | "post" | "put" | "patch" | "delete" | "options";
 
 type IHandleFunc = () => Promise<any> | any;
-type IMiddlewareFunc = () => Promise<void>;
+type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
+
+interface ICleanRouteData {
+  isValid: (value: any) => Error | null;
+  clean: (value: any) => any;
+}
+
 interface IRouteOptions {
   method: IMethod;
   path: string;
-  params: {
-    isValid: (value: any) => Error | null;
-    clean: (value: any) => any;
-  };
-  req_headers: {
-    isValid: (value: any) => Error | null;
-    clean: (value: any) => any;
-  };
-  req_data: {
-    isValid: (value: any) => Error | null;
-    clean: (value: any) => any;
-  };
-  res_data: {
-    isValid: (value: any) => Error | null;
-    clean: (value: any) => any;
-  };
-  middlewares: Array<IMiddlewareFunc>;
-  handle: IHandleFunc;
+  __handle: (req: OpenRequest, res: OpenResponse) => any;
 }
 
-type RouteData = IRouteOptions;
-
-export class Route {
+class RouteBuilder {
   private method: IMethod | null = null;
   private path: string = "";
-  private params: IRouteOptions["params"] = {
+  private params: ICleanRouteData = {
     clean: (value) => value,
     isValid: (value) => null,
   };
-  private requestHeaders: IRouteOptions["req_headers"] = {
+  private requestHeaders: ICleanRouteData = {
     clean: (value) => value,
     isValid: (value) => null,
   };
-  private requestData: IRouteOptions["req_data"] = {
+  private requestData: ICleanRouteData = {
     clean: (value) => value,
     isValid: (value) => null,
   };
-  private responseData: IRouteOptions["res_data"] = {
+  private responseData: ICleanRouteData = {
     clean: (value) => value,
     isValid: (value) => null,
   };
   private middlewares: Array<IMiddlewareFunc> = [];
-  private handle: IHandleFunc | null = null;
+  private handle_func: IHandleFunc | null = null;
   private isCustomRequestDataProvided: boolean = false;
 
   /**
@@ -59,14 +46,14 @@ export class Route {
    *
    * @param {string} method - The HTTP method (e.g. "GET", "POST", etc.)
    * @param {string} path - The path for the route (e.g. "/articles", "/users/:id", etc.)
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
    * const route = new Route().setPath("GET", "/articles");
    * ```
    */
-  public setPath(method: IMethod, path: string): Route {
+  public setPath(method: IMethod, path: string): RouteBuilder {
     this.method = method;
     this.path = path;
     return this;
@@ -76,7 +63,7 @@ export class Route {
    * Validates the request parameters specified in path, as per provided object.
    *
    * @param {object} params - An object containing the parameter definitions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
@@ -86,7 +73,7 @@ export class Route {
    * });
    * ```
    */
-  public setParams(params: TSchema): Route {
+  public setParams(params: TSchema): RouteBuilder {
     // set params
     const compiled = TypeCompiler.Compile(params);
     this.params = {
@@ -103,7 +90,7 @@ export class Route {
    * so you don't need to worry if your data is in query string or request body.
    *
    * @param {object} data - An object containing the request data definitions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
@@ -115,7 +102,7 @@ export class Route {
    * });
    * ```
    */
-  public setRequestData(data: TSchema): Route {
+  public setRequestData(data: TSchema): RouteBuilder {
     this.isCustomRequestDataProvided = true;
     const compiled = TypeCompiler.Compile(data);
     this.requestData = {
@@ -130,7 +117,7 @@ export class Route {
    * Validates the request headers for the route.
    *
    * @param {object} headers - An object containing the request header definitions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
@@ -139,7 +126,7 @@ export class Route {
    * });
    * ```
    */
-  public setRequestHeaders(headers: TSchema): Route {
+  public setRequestHeaders(headers: TSchema): RouteBuilder {
     const compiled = TypeCompiler.Compile(headers);
     this.requestHeaders = {
       isValid: (value) =>
@@ -154,7 +141,7 @@ export class Route {
    * Some common headers such as content-type will automatically be added.
    *
    * @param {object} headers - An object containing the response header definitions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
@@ -163,7 +150,7 @@ export class Route {
    * });
    * ```
    */
-  public setResponseHeaders(headers: object): Route {
+  public setResponseHeaders(headers: object): RouteBuilder {
     // TODO: implement this
     return this;
   }
@@ -173,14 +160,14 @@ export class Route {
    * and also removes any extra keys incase any extra data is specified.
    *
    * @param {object} data - An object containing the response data definitions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
    * const route = new Route().setResponseData(Article);
    * ```
    */
-  public setResponseData(data: TSchema): Route {
+  public setResponseData(data: TSchema): RouteBuilder {
     const compiled = TypeCompiler.Compile(data);
     this.responseData = {
       isValid: (value) =>
@@ -195,14 +182,14 @@ export class Route {
    * Middlewares are execute prior to request handlers.
    *
    * @param {...Function[]} middlewares - An array of middleware functions
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
    * const route = new Route().setMiddlewares(isAuthenticated);
    * ```
    */
-  public setMiddlewares(...middlewares: IHandleFunc[]): Route {
+  public setMiddlewares(...middlewares: IMiddlewareFunc[]): RouteBuilder {
     this.middlewares = middlewares;
     return this;
   }
@@ -211,7 +198,7 @@ export class Route {
    * Sets the handle function for the route. This is main function to hanle incoming request after validation passes.
    *
    * @param {Function} middleware - The handle function
-   * @returns {Route} - The current route instance
+   * @returns {RouteBuilder} - The current route instance
    *
    * Example:
    * ```
@@ -220,8 +207,8 @@ export class Route {
    * });
    * ```
    */
-  public setHandle(handle: IHandleFunc): Route {
-    this.handle = handle;
+  public setHandle(handle: IHandleFunc): RouteBuilder {
+    this.handle_func = handle;
     return this;
   }
 
@@ -229,16 +216,16 @@ export class Route {
    * Builds the route data.
    * Must be invoked to build route definition.
    *
-   * @returns {RouteData} - The built route data
+   * @returns {IRouteOptions} - The built route data
    *
    * Example:
    * ```
    * const routeData = new Route().build();
    * ```
    */
-  public build(): RouteData {
+  public build(): IRouteOptions {
     if (!this.method || !this.path) throw new Error("Method and path must be specified for Route.");
-    if (!this.handle) throw new Error("Request handler must be specified for Route.");
+    if (!this.handle_func) throw new Error("Request handler must be specified for Route.");
 
     if (this.isCustomRequestDataProvided && ["get", "options"].includes(this.method))
       throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
@@ -246,13 +233,42 @@ export class Route {
     return {
       method: this.method,
       path: this.path,
-      params: this.params,
-      handle: this.handle,
-      middlewares: this.middlewares,
-      req_data: this.requestData,
-      res_data: this.responseData,
-      req_headers: this.requestHeaders,
+      __handle: this.__handle.bind(this),
     };
+  }
+
+  // Replace with actual data
+  public async __handle(req: OpenRequest, res: OpenResponse): Promise<any> {
+    try {
+      // validate params
+      const isParamsException = this.params.isValid(req.params);
+      if (!!isParamsException) throw isParamsException;
+
+      // validate data
+      const reqData = { ...req.query, ...req.body };
+      const isDataException = this.requestData.isValid(reqData);
+      if (!!isDataException) throw isDataException;
+
+      // execute middlewares
+      for (const middleware of this.middlewares) {
+        if (res.writableEnded) return;
+        await middleware(req, res);
+      }
+      if (res.writableEnded) return;
+
+      // execute request handlers
+      const result = await this.handle_func!();
+
+      // clean result from handler
+      const isResultException = this.responseData.isValid(result);
+      if (!!isResultException) throw isResultException;
+      const cleaned = this.responseData.clean(result);
+
+      // Return cleaned data
+      return res.json(cleaned);
+    } catch (error) {
+      return res.json({ error: (error as Error).message });
+    }
   }
 }
 
@@ -270,7 +286,7 @@ export class Route {
 //   user_id: number;
 // }
 
-export const RouteBuilder = new Route();
+export const Route = new RouteBuilder();
 
 // export const CreateArticleRoute = RouteBuilder
 //   .setPath("POST", "/articles/:id/:name")
