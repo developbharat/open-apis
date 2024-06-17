@@ -1,5 +1,5 @@
 {
-  "name": "open-apis",
+  "name": "@developbharat/open-apis",
   "module": "dist/index.js",
   "type": "module",
   "scripts": {
