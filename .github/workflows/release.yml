@@ -84,9 +84,9 @@ jobs:
       # Publish version to public repository
       - name: Setup NPM Registry auth token
         run: |
-          echo "registry = https://registry.npmjs.org/" >> /home/.npmrc
-          echo "_auth = $NODE_AUTH_TOKEN" >> /home/.npmrc
-          echo "always-auth = true" >> /home/.npmrc
+          echo "registry = https://registry.npmjs.org/" >> .npmrc
+          echo "_auth = $NODE_AUTH_TOKEN" >> .npmrc
+          echo "always-auth = true" >> .npmrc
 
       - name: Publish
         run: yarn publish --verbose --access public --tag ${{ env.RELEASE_TAG }}
