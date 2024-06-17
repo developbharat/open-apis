@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.32.31",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "reflect-metadata": "^0.2.2"
   }
 }
