@@ -20,6 +20,12 @@ jobs:
           registry-url: https://registry.npmjs.org/
           bun-version: 1.1.13 
 
+      # install nodejs with nvm
+      - name: Install NodeJs
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          nvm install --lts 
+
       # Install dependencies (required by Run tests step)
       - name: Install dependencies
         run: bun install
