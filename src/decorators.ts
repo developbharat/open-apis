@@ -3,7 +3,7 @@ import "reflect-metadata";
 // Map to store property keys for each class
 const classProperties = new Map<any, string[]>();
 
-export const ResSchema = () => (target: any, propertyKey: string) => {
+export const ResSchema = (): any => (target: any, propertyKey: string) => {
   if (!target) throw new Error("ResSchema decorator must be used on class instance. Example @ResSchema()\nclass Sample{}");
 
   // prepare final schema from class properties
@@ -16,11 +16,11 @@ export const ResSchema = () => (target: any, propertyKey: string) => {
     }
   });
 
-  // set final schema
+  // set final schema and optionally remove blank out classProperties as they are no longer required.
   Reflect.defineMetadata("schema", classSchema.trim(), target);
 }
 
-export const ResField = () => (target: any, propertyKey: string) => {
+export const ResField = (): any => (target: any, propertyKey: string) => {
   if (!propertyKey) throw new Error("ResField decorator must be used on class variables. Example @Field()\nname: string");
 
   // Property decorator logic

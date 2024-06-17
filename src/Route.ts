@@ -18,7 +18,7 @@ interface IRouteOptions {
   __handle: (req: OpenRequest, res: OpenResponse) => any;
 }
 
-class RouteBuilder {
+export class RouteBuilder {
   private method: IMethod | null = null;
   private path: string = "";
   private params: ICleanRouteData = {
