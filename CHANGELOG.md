@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## 0.0.1 - 2024-06-18
 ### Added
 - Initial project setup with bun
 - added github actions to manually release package on npm
