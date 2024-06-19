@@ -14,7 +14,7 @@ interface ICleanRouteData {
   clean: (value: any) => any;
 }
 
-interface IRouteOptions {
+export interface IRouteOptions {
   method: IMethod;
   path: string;
   __handle: (req: OpenRequest, res: OpenResponse) => any;
@@ -285,9 +285,12 @@ export class RouteBuilder {
       const cleaned = this.responseData.clean(result);
 
       // Return cleaned data
-      return res.json(cleaned);
+      res.write(JSON.stringify(cleaned, null, 0));
     } catch (error) {
-      return res.json({ error: (error as Error).message });
+      res.write(JSON.stringify({ error: (error as Error).message }));
+    } finally {
+      res.setHeader("content-type", "application/json");
+      return res.end();
     }
   }
 }

@@ -1,5 +1,17 @@
-import { Request, Response } from "express-serve-static-core";
+export interface OpenRequest {
+  readonly params: Record<string, string>;
+  readonly query: Record<string, string>;
+  readonly headers: Record<string, string>;
+  readonly secure: boolean;
+  readonly path: string;
+  readonly hostname: string;
+  readonly method: string;
+}
 
-export interface OpenRequest extends Request {}
-
-export interface OpenResponse extends Response {}
+export interface OpenResponse {
+  setHeader(name: string, value: string): any;
+  statusCode: number;
+  writableEnded: boolean;
+  write(data: string): any;
+  end(data?: string): any;
+}

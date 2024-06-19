@@ -2,6 +2,14 @@ import { describe, it, expect, mock } from "bun:test";
 import { RouteBuilder, Route } from "../src/Route";
 import * as t from "@sinclair/typebox";
 
+const createMockResponse = () => ({
+  writableEnded: false,
+  setHeader: mock(() => null),
+  statusCode: 200,
+  write: mock((data) => data),
+  end: mock((data) => data),
+});
+
 describe("Route", () => {
   it("initializes", () => {
     expect(Route).toBeInstanceOf(RouteBuilder);
@@ -66,7 +74,8 @@ describe("Route", () => {
       .setHandle(() => {})
       .build();
 
-    await created.__handle({} as any, { json: () => null, writableEnded: false } as any);
+    const response = createMockResponse();
+    await created.__handle({} as any, response);
 
     expect(created.path).toBe("/articles");
     expect(created.method).toBe("get");
@@ -79,7 +88,8 @@ describe("Route", () => {
     const handle = mock(async () => {});
     const created = Route.setPath("get", "/articles").setHandle(handle).build();
 
-    await created.__handle({} as any, { json: () => null, writableEnded: false } as any);
+    const response = createMockResponse();
+    await created.__handle({} as any, response);
 
     expect(created.path).toBe("/articles");
     expect(created.method).toBe("get");
@@ -146,24 +156,20 @@ describe("Route", () => {
     const created = Route.setPath("post", "/articles")
       .setRequestData(
         t.Object({
-          title: t.String(),
-          description: t.String(),
+          title: t.String({}),
+          description: t.String({}),
         }),
       )
-      .setHandle(() => {})
+      .setHandle(() => ({}))
       .build();
 
-    const func = mock((data) => data);
-
-    await created.__handle(
-      { body: { title: "abc", description: "abcd" } } as any,
-      { json: func, writableEnded: false } as any,
-    );
+    const response = createMockResponse();
+    await created.__handle({ body: { title: "abc", description: "abcd" } } as any, response);
 
     expect(created.path).toBe("/articles");
     expect(created.method).toBe("post");
     expect(created.__handle).toBeFunction();
-    expect(func.mock.results[0].value).toBeTruthy();
+    expect(response.write).toHaveBeenCalled();
   });
 
   it("fails for invalid request data for POST /articles", async () => {
@@ -174,16 +180,16 @@ describe("Route", () => {
           description: t.String(),
         }),
       )
-      .setHandle(() => {})
+      .setHandle(() => ({}))
       .build();
 
-    const func = mock((data) => data);
-    await created.__handle({} as any, { json: func } as any);
+    const response = createMockResponse();
+    await created.__handle({} as any, response);
 
     expect(created.path).toBe("/articles");
     expect(created.method).toBe("post");
     expect(created.__handle).toBeFunction();
-    expect(func.mock.results[0].value).not.toBe({});
+    expect(response.write.mock.results[0].value).not.toBe("{}");
   });
 
   it("validates request without data for POST /articles", () => {
@@ -191,7 +197,7 @@ describe("Route", () => {
       .setHandle(() => {})
       .build();
 
-    const response = { json: () => null } as any;
+    const response = createMockResponse();
     const success = () => created.__handle({ body: {} } as any, response);
 
     expect(created.path).toBe("/articles");
@@ -227,3 +233,5 @@ describe("Route", () => {
     expect(options).toThrowError();
   });
 });
+
+// TODO: add test cases for middlewares
