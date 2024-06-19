@@ -2,7 +2,9 @@ import { TSchema } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { OpenRequest, OpenResponse } from "./contracts/core";
-type IMethod = "get" | "post" | "put" | "patch" | "delete" | "options";
+
+const methods = ["get", "post", "put", "patch", "delete", "options"] as const;
+type IMethod = (typeof methods)[number];
 
 type IHandleFunc = () => Promise<any> | any;
 type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
@@ -21,21 +23,22 @@ interface IRouteOptions {
 export class RouteBuilder {
   private method: IMethod | null = null;
   private path: string = "";
-  private params: ICleanRouteData = {
+  private params: ICleanRouteData & { keys: string[] } = {
     clean: (value) => value,
-    isValid: (value) => null,
+    isValid: (_) => null,
+    keys: [],
   };
   private requestHeaders: ICleanRouteData = {
     clean: (value) => value,
-    isValid: (value) => null,
+    isValid: (_) => null,
   };
   private requestData: ICleanRouteData = {
     clean: (value) => value,
-    isValid: (value) => null,
+    isValid: (_) => null,
   };
   private responseData: ICleanRouteData = {
     clean: (value) => value,
-    isValid: (value) => null,
+    isValid: (_) => null,
   };
   private middlewares: Array<IMiddlewareFunc> = [];
   private handle_func: IHandleFunc | null = null;
@@ -55,7 +58,7 @@ export class RouteBuilder {
    */
   public setPath(method: IMethod, path: string): RouteBuilder {
     this.method = method;
-    this.path = path;
+    this.path = path || "/";
     return this;
   }
 
@@ -80,6 +83,7 @@ export class RouteBuilder {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
       clean: (value) => Value.Clean(params, value),
+      keys: params.required,
     };
     return this;
   }
@@ -225,10 +229,22 @@ export class RouteBuilder {
    */
   public build(): IRouteOptions {
     if (!this.method || !this.path) throw new Error("Method and path must be specified for Route.");
+    if (!methods.includes(this.method)) throw new Error("Unsupported Method provided for Route.");
     if (!this.handle_func) throw new Error("Request handler must be specified for Route.");
 
     if (this.isCustomRequestDataProvided && ["get", "options"].includes(this.method))
       throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
+
+    // validate request path and its related params
+    const pnames = this.path
+      .split("/")
+      .filter((item) => item.startsWith(":"))
+      .map((item) => item.replace(":", ""));
+
+    for (const key of pnames) {
+      if (!this.params.keys.includes(key))
+        throw new Error(`Route.setParams is missing key: ${key}`);
+    }
 
     return {
       method: this.method,
@@ -249,7 +265,7 @@ export class RouteBuilder {
       if (!!isParamsException) throw isParamsException;
 
       // validate data
-      const reqData = { ...req.query, ...req.body };
+      const reqData = { ...(req.query || {}), ...(req.body || {}) };
       const isDataException = this.requestData.isValid(reqData);
       if (!!isDataException) throw isDataException;
 
@@ -277,4 +293,3 @@ export class RouteBuilder {
 }
 
 export const Route = new RouteBuilder();
-
