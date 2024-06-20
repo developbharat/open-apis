@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, Application } from "express-serve-static-core";
+import { Request, Response, Application } from "express-serve-static-core";
 import type { IRouteOptions } from "../Route";
 import express from "express";
 
