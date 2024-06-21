@@ -12,6 +12,8 @@ type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
 interface IBuildOptions {
   summary?: string;
   response_code?: number;
+  accepts?: "application/json";
+  responds?: "application/json";
 }
 
 interface ICleanRouteData {
@@ -20,19 +22,21 @@ interface ICleanRouteData {
   schema: TSchema;
 }
 
-export interface IRouteSchema {
+export interface IRouteOpenSchema {
   method: IMethod;
   path: string;
   summary?: string;
   parameters?: TSchema;
   body?: TSchema;
   response?: { code: number; schema: TSchema };
+  accepts_content_type?: "application/json";
+  response_content_type?: "application/json";
 }
 
 export interface IRouteOptions {
   method: IMethod;
   path: string;
-  openapi_schema: IRouteSchema;
+  openapi_schema: IRouteOpenSchema;
   __handle: (req: OpenRequest, res: OpenResponse) => any;
 }
 
@@ -273,13 +277,15 @@ export class RouteBuilder {
     // build openapi schema
     const convert = (item: string) =>
       item.startsWith(":") ? "{" + item.replace(":", "") + "}" : item;
-    const schema: IRouteSchema = {
+    const schema: IRouteOpenSchema = {
       method: this.method,
       path: this.path.split("/").map(convert).join("/"),
       body: this.requestData.schema,
       parameters: this.params.schema,
       response: { code: options.response_code || 200, schema: this.responseData.schema },
       summary: options?.summary || "",
+      accepts_content_type: options.accepts || "application/json",
+      response_content_type: options.responds || "application/json",
     };
 
     return {
