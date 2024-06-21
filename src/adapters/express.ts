@@ -1,13 +1,7 @@
 import { Request, Response, Application } from "express-serve-static-core";
 import type { IRouteOptions } from "../Route";
-import express from "express";
 
 export const init_express = (app: Application, routes: IRouteOptions[]) => {
-  // enable request data parsing
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // set all endpoints
   for (const route of routes) {
     app[route.method](
       route.path,
@@ -21,6 +15,7 @@ export const init_express = (app: Application, routes: IRouteOptions[]) => {
             path: req.path,
             secure: req.secure,
             query: req.query,
+            body: req.body,
           },
           res,
         ),

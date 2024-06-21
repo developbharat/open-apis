@@ -8,10 +8,15 @@ describe("Express Examples", () => {
   it("create new article", async () => {
     const app = express();
 
-    const route = Route.setPath("get", "/articles")
+    // enable request data parsing
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    const endpoint = Route()
+      .setPath("get", "/articles")
       .setHandle(() => ({ success: true }))
       .build();
-    init_express(app, [route]);
+    init_express(app, [endpoint]);
 
     const res = await request(app).get("/articles");
     const data = await res.body;

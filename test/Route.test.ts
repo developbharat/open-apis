@@ -12,12 +12,13 @@ const createMockResponse = () => ({
 
 describe("Route", () => {
   it("initializes", () => {
-    expect(Route).toBeInstanceOf(RouteBuilder);
-    expect(Route.build).toBeDefined();
+    expect(Route()).toBeInstanceOf(RouteBuilder);
+    expect(Route().build).toBeDefined();
   });
 
   it("create GET /articles route", () => {
-    const created = Route.setPath("get", "/articles")
+    const created = Route()
+      .setPath("get", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -27,7 +28,8 @@ describe("Route", () => {
   });
 
   it("create POST /article route", () => {
-    const created = Route.setPath("post", "/articles")
+    const created = Route()
+      .setPath("post", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -37,7 +39,8 @@ describe("Route", () => {
   });
 
   it("create PUT /article route", () => {
-    const created = Route.setPath("put", "/articles")
+    const created = Route()
+      .setPath("put", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -47,7 +50,8 @@ describe("Route", () => {
   });
 
   it("create PATCH /article route", () => {
-    const created = Route.setPath("patch", "/articles")
+    const created = Route()
+      .setPath("patch", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -57,7 +61,8 @@ describe("Route", () => {
   });
 
   it("create DELETE /article route", () => {
-    const created = Route.setPath("delete", "/articles")
+    const created = Route()
+      .setPath("delete", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -69,7 +74,8 @@ describe("Route", () => {
   it("supports middlewares for GET /articles", async () => {
     const middleware1 = mock(async () => {});
     const middleware2 = mock(async () => {});
-    const created = Route.setPath("get", "/articles")
+    const created = Route()
+      .setPath("get", "/articles")
       .setMiddlewares(middleware1, middleware2)
       .setHandle(() => {})
       .build();
@@ -86,7 +92,7 @@ describe("Route", () => {
 
   it("supports handle for GET /articles", async () => {
     const handle = mock(async () => {});
-    const created = Route.setPath("get", "/articles").setHandle(handle).build();
+    const created = Route().setPath("get", "/articles").setHandle(handle).build();
 
     const response = createMockResponse();
     await created.__handle({} as any, response);
@@ -98,7 +104,8 @@ describe("Route", () => {
   });
 
   it("supports params for /articles/:id", () => {
-    const created = Route.setPath("get", "/articles/:id")
+    const created = Route()
+      .setPath("get", "/articles/:id")
       .setParams(t.Object({ id: t.String({}) }))
       .setHandle(() => {})
       .build();
@@ -109,7 +116,8 @@ describe("Route", () => {
   });
 
   it("supports params for /articles/:article_id/comments/:comment_id", () => {
-    const created = Route.setPath("get", "/articles/:article_id/comments/:comment_id")
+    const created = Route()
+      .setPath("get", "/articles/:article_id/comments/:comment_id")
       .setParams(
         t.Object({
           article_id: t.String(),
@@ -126,7 +134,8 @@ describe("Route", () => {
 
   it("validates params presence from route path /articles/:id", () => {
     const created = () =>
-      Route.setPath("get", "/articles/:id")
+      Route()
+        .setPath("get", "/articles/:id")
         .setHandle(() => {})
         .build();
 
@@ -135,7 +144,8 @@ describe("Route", () => {
 
   it("validates validate method for GET /articles", () => {
     const created = () =>
-      Route.setPath("unknown" as any, "/articles")
+      Route()
+        .setPath("unknown" as any, "/articles")
         .setHandle(() => {})
         .build();
 
@@ -143,7 +153,8 @@ describe("Route", () => {
   });
 
   it("treats blank path for route as /", () => {
-    const created = Route.setPath("get", "")
+    const created = Route()
+      .setPath("get", "")
       .setHandle(() => {})
       .build();
 
@@ -153,7 +164,8 @@ describe("Route", () => {
   });
 
   it("works for valid request data for POST /articles", async () => {
-    const created = Route.setPath("post", "/articles")
+    const created = Route()
+      .setPath("post", "/articles")
       .setRequestData(
         t.Object({
           title: t.String({}),
@@ -173,7 +185,8 @@ describe("Route", () => {
   });
 
   it("fails for invalid request data for POST /articles", async () => {
-    const created = Route.setPath("post", "/articles")
+    const created = Route()
+      .setPath("post", "/articles")
       .setRequestData(
         t.Object({
           title: t.String(),
@@ -193,7 +206,8 @@ describe("Route", () => {
   });
 
   it("validates request without data for POST /articles", () => {
-    const created = Route.setPath("post", "/articles")
+    const created = Route()
+      .setPath("post", "/articles")
       .setHandle(() => {})
       .build();
 
@@ -206,9 +220,10 @@ describe("Route", () => {
     expect(success).not.toThrowError();
   });
 
-  it("disallows to use Route.setRequestData with GET and OPTIONS method", () => {
+  it("disallows to use Route().setRequestData with GET and OPTIONS method", () => {
     const get = () =>
-      Route.setPath("get", "/articles")
+      Route()
+        .setPath("get", "/articles")
         .setRequestData(
           t.Object({
             title: t.String(),
@@ -219,7 +234,8 @@ describe("Route", () => {
         .build();
 
     const options = () =>
-      Route.setPath("options", "/articles")
+      Route()
+        .setPath("options", "/articles")
         .setRequestData(
           t.Object({
             title: t.String(),

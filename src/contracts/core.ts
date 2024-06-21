@@ -2,6 +2,7 @@ export interface OpenRequest {
   readonly params: Record<string, string>;
   readonly query: Record<string, string>;
   readonly headers: Record<string, string>;
+  readonly body: Record<string, any>;
   readonly secure: boolean;
   readonly path: string;
   readonly hostname: string;

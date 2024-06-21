@@ -1,4 +1,4 @@
-import { TSchema } from "@sinclair/typebox";
+import { TSchema, Type } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { OpenRequest, OpenResponse } from "./contracts/core";
@@ -9,40 +9,58 @@ type IMethod = (typeof methods)[number];
 type IHandleFunc = () => Promise<any> | any;
 type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
 
+interface IBuildOptions {
+  summary?: string;
+  response_code?: number;
+}
+
 interface ICleanRouteData {
   isValid: (value: any) => Error | null;
   clean: (value: any) => any;
+  schema: TSchema;
+}
+
+export interface IRouteSchema {
+  method: IMethod;
+  path: string;
+  summary?: string;
+  parameters?: TSchema;
+  body?: TSchema;
+  response?: { code: number; schema: TSchema };
 }
 
 export interface IRouteOptions {
   method: IMethod;
   path: string;
+  openapi_schema: IRouteSchema;
   __handle: (req: OpenRequest, res: OpenResponse) => any;
 }
 
 export class RouteBuilder {
   private method: IMethod | null = null;
   private path: string = "";
-  private params: ICleanRouteData & { keys: string[] } = {
+  private params: ICleanRouteData = {
     clean: (value) => value,
     isValid: (_) => null,
-    keys: [],
+    schema: Type.Optional(Type.Any()),
   };
   private requestHeaders: ICleanRouteData = {
     clean: (value) => value,
     isValid: (_) => null,
+    schema: Type.Optional(Type.Any()),
   };
   private requestData: ICleanRouteData = {
     clean: (value) => value,
     isValid: (_) => null,
+    schema: Type.Optional(Type.Any()),
   };
   private responseData: ICleanRouteData = {
     clean: (value) => value,
     isValid: (_) => null,
+    schema: Type.Optional(Type.Any()),
   };
   private middlewares: Array<IMiddlewareFunc> = [];
   private handle_func: IHandleFunc | null = null;
-  private isCustomRequestDataProvided: boolean = false;
 
   /**
    * Sets the HTTP method and path for the route.
@@ -83,8 +101,9 @@ export class RouteBuilder {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
       clean: (value) => Value.Clean(params, value),
-      keys: params.required,
+      schema: params,
     };
+
     return this;
   }
 
@@ -107,13 +126,19 @@ export class RouteBuilder {
    * ```
    */
   public setRequestData(data: TSchema): RouteBuilder {
-    this.isCustomRequestDataProvided = true;
+    // prevent invocation of .setRequestData for get and options method
+    if (!this.method) throw new Error("Request method must be set before using .setRequestData");
+    if (["get", "options"].includes(this.method))
+      throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
+
     const compiled = TypeCompiler.Compile(data);
     this.requestData = {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
       clean: (value) => Value.Clean(data, value),
+      schema: data,
     };
+
     return this;
   }
 
@@ -136,6 +161,7 @@ export class RouteBuilder {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
       clean: (value) => Value.Clean(headers, value),
+      schema: headers,
     };
     return this;
   }
@@ -177,6 +203,7 @@ export class RouteBuilder {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
       clean: (value) => Value.Clean(data, value),
+      schema: data,
     };
     return this;
   }
@@ -227,13 +254,10 @@ export class RouteBuilder {
    * const routeData = new Route().build();
    * ```
    */
-  public build(): IRouteOptions {
+  public build(options: IBuildOptions = {}): IRouteOptions {
     if (!this.method || !this.path) throw new Error("Method and path must be specified for Route.");
     if (!methods.includes(this.method)) throw new Error("Unsupported Method provided for Route.");
     if (!this.handle_func) throw new Error("Request handler must be specified for Route.");
-
-    if (this.isCustomRequestDataProvided && ["get", "options"].includes(this.method))
-      throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
 
     // validate request path and its related params
     const pnames = this.path
@@ -242,13 +266,26 @@ export class RouteBuilder {
       .map((item) => item.replace(":", ""));
 
     for (const key of pnames) {
-      if (!this.params.keys.includes(key))
+      if (!this.params.schema.required.includes(key))
         throw new Error(`Route.setParams is missing key: ${key}`);
     }
+
+    // build openapi schema
+    const convert = (item: string) =>
+      item.startsWith(":") ? "{" + item.replace(":", "") + "}" : item;
+    const schema: IRouteSchema = {
+      method: this.method,
+      path: this.path.split("/").map(convert).join("/"),
+      body: this.requestData.schema,
+      parameters: this.params.schema,
+      response: { code: options.response_code || 200, schema: this.responseData.schema },
+      summary: options?.summary || "",
+    };
 
     return {
       method: this.method,
       path: this.path,
+      openapi_schema: schema,
       __handle: this.__handle.bind(this),
     };
   }
@@ -289,10 +326,11 @@ export class RouteBuilder {
     } catch (error) {
       res.write(JSON.stringify({ error: (error as Error).message }));
     } finally {
+      res.statusCode = 200;
       res.setHeader("content-type", "application/json");
       return res.end();
     }
   }
 }
 
-export const Route = new RouteBuilder();
+export const Route = () => new RouteBuilder();
