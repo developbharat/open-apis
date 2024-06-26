@@ -1,7 +1,8 @@
-import { TSchema, Type } from "@sinclair/typebox";
+import { TSchema, Type, TypeGuard } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { OpenRequest, OpenResponse } from "./contracts/core";
+import { ClassDeclaration } from "typescript";
 
 const methods = ["get", "post", "put", "patch", "delete", "options"] as const;
 type IMethod = (typeof methods)[number];
@@ -98,14 +99,21 @@ export class RouteBuilder {
    * });
    * ```
    */
-  public setParams(params: TSchema): RouteBuilder {
+  public setParams(params: TSchema | object): RouteBuilder {
+    const schema = TypeGuard.IsObject(params) ? params : Reflect.getMetadata("schema", params);
+    if (!schema) {
+      throw new Error(
+        "You must provide either Route().setParams(t.Schema()) for params or a class as Route().setParams(ClassName)",
+      );
+    }
+
     // set params
-    const compiled = TypeCompiler.Compile(params);
+    const compiled = TypeCompiler.Compile(schema);
     this.params = {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
-      clean: (value) => Value.Clean(params, value),
-      schema: params,
+      clean: (value) => Value.Clean(schema, value),
+      schema: schema,
     };
 
     return this;
@@ -129,18 +137,26 @@ export class RouteBuilder {
    * });
    * ```
    */
-  public setRequestData(data: TSchema): RouteBuilder {
+  public setRequestData(data: TSchema | object): RouteBuilder {
     // prevent invocation of .setRequestData for get and options method
     if (!this.method) throw new Error("Request method must be set before using .setRequestData");
     if (["get", "options"].includes(this.method))
       throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
 
-    const compiled = TypeCompiler.Compile(data);
+    // allow data as t.Object or via decorator
+    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata("schema", data);
+    if (!schema) {
+      throw new Error(
+        "You must provide either Route().setRequestData(t.Schema()) for request data or a class as Route().setRequestData(ClassName)",
+      );
+    }
+
+    const compiled = TypeCompiler.Compile(schema);
     this.requestData = {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
-      clean: (value) => Value.Clean(data, value),
-      schema: data,
+      clean: (value) => Value.Clean(schema, value),
+      schema: schema,
     };
 
     return this;
@@ -159,13 +175,21 @@ export class RouteBuilder {
    * });
    * ```
    */
-  public setRequestHeaders(headers: TSchema): RouteBuilder {
-    const compiled = TypeCompiler.Compile(headers);
+  public setRequestHeaders(headers: TSchema | object): RouteBuilder {
+    // allow data as t.Object or via decorator
+    const schema = TypeGuard.IsObject(headers) ? headers : Reflect.getMetadata("schema", headers);
+    if (!schema) {
+      throw new Error(
+        "You must provide either Route().setRequestHeaders(t.Schema()) for request data or a class as Route().setRequestHeaders(ClassName)",
+      );
+    }
+
+    const compiled = TypeCompiler.Compile(schema);
     this.requestHeaders = {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
-      clean: (value) => Value.Clean(headers, value),
-      schema: headers,
+      clean: (value) => Value.Clean(schema, value),
+      schema: schema,
     };
     return this;
   }
@@ -201,13 +225,21 @@ export class RouteBuilder {
    * const route = new Route().setResponseData(Article);
    * ```
    */
-  public setResponseData(data: TSchema): RouteBuilder {
-    const compiled = TypeCompiler.Compile(data);
+  public setResponseData(data: TSchema | object): RouteBuilder {
+    // allow data as t.Object or via decorator
+    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata("schema", data);
+    if (!schema) {
+      throw new Error(
+        "You must provide either Route().setResponseData(t.Schema()) for request data or a class as Route().setResponseData(ClassName)",
+      );
+    }
+
+    const compiled = TypeCompiler.Compile(schema);
     this.responseData = {
       isValid: (value) =>
         compiled.Check(value) ? null : Error(compiled.Errors(value).First()?.message),
-      clean: (value) => Value.Clean(data, value),
-      schema: data,
+      clean: (value) => Value.Clean(schema, value),
+      schema: schema,
     };
     return this;
   }

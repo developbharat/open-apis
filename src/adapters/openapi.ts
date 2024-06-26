@@ -31,7 +31,7 @@ export const create_openapi_schema = (
           ? undefined
           : {
               [route.response?.code]: {
-                description: "",
+                description: route.response.schema.description || "Response format",
                 content: {
                   [route.response_content_type || "application/json"]: {
                     schema: clean(route.response?.schema),
@@ -43,7 +43,7 @@ export const create_openapi_schema = (
         requestBody: !route.body
           ? undefined
           : {
-              description: "Data required for request body",
+              description: route.body.description || "Data required for request body",
               content: {
                 [route.accepts_content_type || "application/json"]: {
                   schema: clean(route.body),
