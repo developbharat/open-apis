@@ -40,7 +40,8 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.32.33",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "route-trie": "^3.0.0"
   },
   "version": "0.0.1"
 }
