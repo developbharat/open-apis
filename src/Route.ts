@@ -2,12 +2,12 @@ import { TSchema, Type, TypeGuard } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { OpenRequest, OpenResponse } from "./contracts/core";
-import { ClassDeclaration } from "typescript";
+import { ReflectSchemaField } from "./decorators";
 
 const methods = ["get", "post", "put", "patch", "delete", "options"] as const;
 type IMethod = (typeof methods)[number];
 
-type IHandleFunc = () => Promise<any> | any;
+type IHandleFunc = <TReturn = any>(req: OpenRequest) => Promise<TReturn> | TReturn | void | Promise<void>
 type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
 
 interface IBuildOptions {
@@ -100,7 +100,7 @@ export class RouteBuilder {
    * ```
    */
   public setParams(params: TSchema | object): RouteBuilder {
-    const schema = TypeGuard.IsObject(params) ? params : Reflect.getMetadata("schema", params);
+    const schema = TypeGuard.IsObject(params) ? params : Reflect.getMetadata(ReflectSchemaField.REQ_PARAMS, params);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setParams(t.Schema()) for params or a class as Route().setParams(ClassName)",
@@ -144,7 +144,7 @@ export class RouteBuilder {
       throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
 
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata("schema", data);
+    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata(ReflectSchemaField.REQ_DATA, data);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setRequestData(t.Schema()) for request data or a class as Route().setRequestData(ClassName)",
@@ -177,7 +177,7 @@ export class RouteBuilder {
    */
   public setRequestHeaders(headers: TSchema | object): RouteBuilder {
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(headers) ? headers : Reflect.getMetadata("schema", headers);
+    const schema = TypeGuard.IsObject(headers) ? headers : Reflect.getMetadata(ReflectSchemaField.REQ_HEADERS, headers);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setRequestHeaders(t.Schema()) for request data or a class as Route().setRequestHeaders(ClassName)",
@@ -227,7 +227,7 @@ export class RouteBuilder {
    */
   public setResponseData(data: TSchema | object): RouteBuilder {
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata("schema", data);
+    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata(ReflectSchemaField.RES_DATA, data);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setResponseData(t.Schema()) for request data or a class as Route().setResponseData(ClassName)",
@@ -352,7 +352,7 @@ export class RouteBuilder {
       if (res.writableEnded) return;
 
       // execute request handlers
-      const result = await this.handle_func!();
+      const result = await this.handle_func!(req);
 
       // clean result from handler
       const isResultException = this.responseData.isValid(result);

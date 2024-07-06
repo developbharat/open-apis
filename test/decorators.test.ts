@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Route } from "../src/Route";
-import { ResField, ResSchema } from "../src/decorators";
+import { ReflectSchemaField, ResField, ResSchema } from "../src/decorators";
 import { Article } from "../src/index-initial-idea";
 
 const createMockResponse = () => ({
@@ -22,22 +22,32 @@ describe("Decorators", () => {
       public count: number = 0;
     }
 
-    const schema = Reflect.getMetadata("schema", SampleTest);
-    expect(schema.type).toBe("object");
-    expect(schema.properties).toBeObject();
+    const schema1 = Reflect.getMetadata(ReflectSchemaField.REQ_HEADERS, SampleTest);
+    const schema2 = Reflect.getMetadata(ReflectSchemaField.REQ_PARAMS, SampleTest);
+    const schema3 = Reflect.getMetadata(ReflectSchemaField.REQ_DATA, SampleTest);
+    const schema4 = Reflect.getMetadata(ReflectSchemaField.RES_DATA, SampleTest);
+
+    expect(schema1.type).toBe("object");
+    expect(schema2.type).toBe("object");
+    expect(schema3.type).toBe("object");
+    expect(schema4.type).toBe("object");
+    expect(schema1.properties).toBeObject();
+    expect(schema2.properties).toBeObject();
+    expect(schema3.properties).toBeObject();
+    expect(schema4.properties).toBeObject();
   });
 
   it("Allows use of decorators for .setParams in: GET /articles/:name", () => {
     @ResSchema()
     class ArticleParams {
-      @ResField("String", { minLength: 5, maxLength: 40 })
+      @ResField("String", { minLength: 5, maxLength: 40 }, { asRequestParams: true })
       public name: string = "";
     }
 
     const created = Route()
       .setPath("get", "/articles/:name")
       .setParams(ArticleParams)
-      .setHandle(() => {})
+      .setHandle(() => { })
       .build();
 
     expect(created.path).toBe("/articles/:name");
@@ -48,14 +58,14 @@ describe("Decorators", () => {
   it("Allows use of decorators for .setRequestData in: POST /articles", () => {
     @ResSchema()
     class ArticleData {
-      @ResField("String", { minLength: 5, maxLength: 40 })
+      @ResField("String", { minLength: 5, maxLength: 40 }, { asRequestData: true })
       public name: string = "";
     }
 
     const created = Route()
       .setPath("post", "/articles")
       .setRequestData(ArticleData)
-      .setHandle(() => {})
+      .setHandle(() => { })
       .build();
 
     expect(created.path).toBe("/articles");
@@ -66,14 +76,14 @@ describe("Decorators", () => {
   it("Allows use of decorators for .setResponseData in: POST /articles", () => {
     @ResSchema()
     class ArticleRes {
-      @ResField("String", { minLength: 5, maxLength: 40 })
+      @ResField("String", { minLength: 5, maxLength: 40 }, { asResponseData: true })
       public name: string = "";
     }
 
     const created = Route()
       .setPath("post", "/articles")
       .setResponseData(ArticleRes)
-      .setHandle(() => {})
+      .setHandle(() => { })
       .build();
 
     expect(created.path).toBe("/articles");
@@ -84,14 +94,14 @@ describe("Decorators", () => {
   it("Allows use of decorators for .setRequestHeaders in: GET /articles", () => {
     @ResSchema()
     class ArticleHeaders {
-      @ResField("String", { minLength: 5, maxLength: 40 })
+      @ResField("String", { minLength: 5, maxLength: 40 }, { asRequestHeaders: true })
       public authorization: string = "";
     }
 
     const created = Route()
       .setPath("get", "/articles")
       .setRequestHeaders(ArticleHeaders)
-      .setHandle(() => {})
+      .setHandle(() => { })
       .build();
 
     expect(created.path).toBe("/articles");
@@ -102,10 +112,10 @@ describe("Decorators", () => {
   it("works for valid request data for POST /articles", async () => {
     @ResSchema()
     class ArticleData {
-      @ResField("String", { minLength: 3, maxLength: 40 })
+      @ResField("String", { minLength: 3, maxLength: 40 }, { asRequestData: true })
       public title: string = "";
 
-      @ResField("String", { minLength: 3, maxLength: 40 })
+      @ResField("String", { minLength: 3, maxLength: 40 }, { asRequestData: true })
       public description: string = "";
     }
 
@@ -127,10 +137,10 @@ describe("Decorators", () => {
   it("fails for invalid request data for POST /articles", async () => {
     @ResSchema()
     class ArticleData {
-      @ResField("String", { minLength: 3, maxLength: 40 })
+      @ResField("String", { minLength: 3, maxLength: 40 }, { asRequestData: true })
       public title: string = "";
 
-      @ResField("String", { minLength: 3, maxLength: 40 })
+      @ResField("String", { minLength: 3, maxLength: 40 }, { asRequestData: true })
       public description: string = "";
     }
 
@@ -152,7 +162,7 @@ describe("Decorators", () => {
   it("validates request without data for POST /articles", () => {
     const created = Route()
       .setPath("post", "/articles")
-      .setHandle(() => {})
+      .setHandle(() => { })
       .build();
 
     const response = createMockResponse();

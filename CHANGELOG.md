@@ -13,6 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - added adapter to generate openapi schema
 - added more tests to Route class
 - added express adapter
+- added decorators
+- added asRequestData, asResponseData, asRequestParams, optional, asRequestHeaders fields to decorators options.
+- added test cases for decorators
+- added trie router for request handling 
+- added request param to Route Handle
 
 ### Fixed
 
