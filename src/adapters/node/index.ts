@@ -5,6 +5,7 @@ import { IRouteOptions } from "../../Route";
 import { OpenServe } from "../../TrieRouter";
 import { IOpenRequestBody, OpenRequest } from "../../contracts/core";
 import { IParseFormOptions, parseForm } from "./parseForm";
+import { parseJson } from "./parseJson";
 
 export interface INodeServerHandleOptions {
   // useDropzone?: boolean; // TODO: implement this
@@ -20,13 +21,22 @@ export const nodeServerHandle =
       if (!["GET", "OPTIONS"].includes(req.method!)) {
         const tempFolder = path.join(tmpdir(), "open-apis", "files");
 
-        // parse form data
-        const opts = {
-          saveFilesToDisk: options.saveFilesToDisk ?? true,
-          fileSaveTempDirPath: options.fileSaveTempDirPath ?? tempFolder,
-        } as IParseFormOptions;
-        const data = await parseForm(opts, req);
-        return resolve(data);
+        // parse json
+        switch (req.headers["content-type"]) {
+          case "application/json":
+            const json = await parseJson(req);
+            return resolve(json);
+          case "multipart/form-data":
+          case "application/x-www-form-urlencoded":
+            const opts = {
+              saveFilesToDisk: options.saveFilesToDisk ?? true,
+              fileSaveTempDirPath: options.fileSaveTempDirPath ?? tempFolder,
+            } as IParseFormOptions;
+            const form = await parseForm(opts, req);
+            return resolve(form);
+          default:
+            throw new Error(`Unsupported content-type encountered: ${req.headers["content-type"]}`);
+        }
       }
       return resolve({});
     });
