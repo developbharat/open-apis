@@ -1,15 +1,15 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Route } from "../src/Route";
+import { OpenResponse } from "../src/contracts/core";
 import { ReflectSchemaField, ResField, ResSchema } from "../src/decorators";
-import { Article } from "../src/index-initial-idea";
 
-const createMockResponse = () => ({
-  writableEnded: false,
-  setHeader: mock(() => null),
-  statusCode: 200,
-  write: mock((data) => data),
-  end: mock((data) => data),
-});
+const createMockResponse = () =>
+  ({
+    writableEnded: false,
+    writeHead: mock(() => null),
+    write: mock((data) => data),
+    end: mock((data) => data),
+  } as unknown as OpenResponse);
 
 describe("Decorators", () => {
   it("initializes", () => {
@@ -45,13 +45,13 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("get", "/articles/:name")
+      .setPath("GET", "/articles/:name")
       .setParams(ArticleParams)
-      .setHandle(() => { })
+      .setHandle(() => {})
       .build();
 
     expect(created.path).toBe("/articles/:name");
-    expect(created.method).toBe("get");
+    expect(created.method).toBe("GET");
     expect(created.__handle).toBeFunction();
   });
 
@@ -63,13 +63,13 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("post", "/articles")
+      .setPath("POST", "/articles")
       .setRequestData(ArticleData)
-      .setHandle(() => { })
+      .setHandle(() => {})
       .build();
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("post");
+    expect(created.method).toBe("POST");
     expect(created.__handle).toBeFunction();
   });
 
@@ -81,13 +81,13 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("post", "/articles")
+      .setPath("POST", "/articles")
       .setResponseData(ArticleRes)
-      .setHandle(() => { })
+      .setHandle(() => {})
       .build();
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("post");
+    expect(created.method).toBe("POST");
     expect(created.__handle).toBeFunction();
   });
 
@@ -99,13 +99,13 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("get", "/articles")
+      .setPath("GET", "/articles")
       .setRequestHeaders(ArticleHeaders)
-      .setHandle(() => { })
+      .setHandle(() => {})
       .build();
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("get");
+    expect(created.method).toBe("GET");
     expect(created.__handle).toBeFunction();
   });
 
@@ -120,7 +120,7 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("post", "/articles")
+      .setPath("POST", "/articles")
       .setRequestData(ArticleData)
       .setHandle(() => ({}))
       .build();
@@ -129,7 +129,7 @@ describe("Decorators", () => {
     await created.__handle({ body: { title: "abc", description: "abcd" } } as any, response);
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("post");
+    expect(created.method).toBe("POST");
     expect(created.__handle).toBeFunction();
     expect(response.write).toHaveBeenCalled();
   });
@@ -145,7 +145,7 @@ describe("Decorators", () => {
     }
 
     const created = Route()
-      .setPath("post", "/articles")
+      .setPath("POST", "/articles")
       .setRequestData(ArticleData)
       .setHandle(() => ({}))
       .build();
@@ -154,22 +154,22 @@ describe("Decorators", () => {
     await created.__handle({} as any, response);
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("post");
+    expect(created.method).toBe("POST");
     expect(created.__handle).toBeFunction();
     expect(response.write.mock.results[0].value).not.toBe("{}");
   });
 
   it("validates request without data for POST /articles", () => {
     const created = Route()
-      .setPath("post", "/articles")
-      .setHandle(() => { })
+      .setPath("POST", "/articles")
+      .setHandle(() => {})
       .build();
 
     const response = createMockResponse();
     const success = () => created.__handle({ body: {} } as any, response);
 
     expect(created.path).toBe("/articles");
-    expect(created.method).toBe("post");
+    expect(created.method).toBe("POST");
     expect(created.__handle).toBeFunction();
     expect(success).not.toThrowError();
   });

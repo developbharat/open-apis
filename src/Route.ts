@@ -3,11 +3,13 @@ import { TypeCompiler } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { OpenRequest, OpenResponse } from "./contracts/core";
 import { ReflectSchemaField } from "./decorators";
+const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] as const;
 
-const methods = ["get", "post", "put", "patch", "delete", "options"] as const;
 type IMethod = (typeof methods)[number];
 
-type IHandleFunc = <TReturn = any>(req: OpenRequest) => Promise<TReturn> | TReturn | void | Promise<void>
+type IHandleFunc = <TReturn = any>(
+  req: OpenRequest,
+) => Promise<TReturn> | TReturn | void | Promise<void>;
 type IMiddlewareFunc = (req: OpenRequest, res: OpenResponse) => Promise<any>;
 
 interface IBuildOptions {
@@ -80,7 +82,7 @@ export class RouteBuilder {
    * ```
    */
   public setPath(method: IMethod, path: string): RouteBuilder {
-    this.method = method;
+    this.method = method.toUpperCase() as IMethod;
     this.path = path || "/";
     return this;
   }
@@ -100,7 +102,9 @@ export class RouteBuilder {
    * ```
    */
   public setParams(params: TSchema | object): RouteBuilder {
-    const schema = TypeGuard.IsObject(params) ? params : Reflect.getMetadata(ReflectSchemaField.REQ_PARAMS, params);
+    const schema = TypeGuard.IsObject(params)
+      ? params
+      : Reflect.getMetadata(ReflectSchemaField.REQ_PARAMS, params);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setParams(t.Schema()) for params or a class as Route().setParams(ClassName)",
@@ -140,11 +144,13 @@ export class RouteBuilder {
   public setRequestData(data: TSchema | object): RouteBuilder {
     // prevent invocation of .setRequestData for get and options method
     if (!this.method) throw new Error("Request method must be set before using .setRequestData");
-    if (["get", "options"].includes(this.method))
+    if (["GET", "OPTIONS"].includes(this.method))
       throw new Error("You cannot use setRequestData with GET and OPTIONS requests.");
 
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata(ReflectSchemaField.REQ_DATA, data);
+    const schema = TypeGuard.IsObject(data)
+      ? data
+      : Reflect.getMetadata(ReflectSchemaField.REQ_DATA, data);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setRequestData(t.Schema()) for request data or a class as Route().setRequestData(ClassName)",
@@ -177,7 +183,9 @@ export class RouteBuilder {
    */
   public setRequestHeaders(headers: TSchema | object): RouteBuilder {
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(headers) ? headers : Reflect.getMetadata(ReflectSchemaField.REQ_HEADERS, headers);
+    const schema = TypeGuard.IsObject(headers)
+      ? headers
+      : Reflect.getMetadata(ReflectSchemaField.REQ_HEADERS, headers);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setRequestHeaders(t.Schema()) for request data or a class as Route().setRequestHeaders(ClassName)",
@@ -227,7 +235,9 @@ export class RouteBuilder {
    */
   public setResponseData(data: TSchema | object): RouteBuilder {
     // allow data as t.Object or via decorator
-    const schema = TypeGuard.IsObject(data) ? data : Reflect.getMetadata(ReflectSchemaField.RES_DATA, data);
+    const schema = TypeGuard.IsObject(data)
+      ? data
+      : Reflect.getMetadata(ReflectSchemaField.RES_DATA, data);
     if (!schema) {
       throw new Error(
         "You must provide either Route().setResponseData(t.Schema()) for request data or a class as Route().setResponseData(ClassName)",
@@ -364,8 +374,8 @@ export class RouteBuilder {
     } catch (error) {
       res.write(JSON.stringify({ error: (error as Error).message }));
     } finally {
-      res.statusCode = 200;
-      res.setHeader("content-type", "application/json");
+      // TODO: move this line to catch and try block to set custom status code for errors and success responses.
+      res.writeHead(200, { "content-type": "application/json" });
       return res.end();
     }
   }

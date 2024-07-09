@@ -2,7 +2,7 @@ import { Trie } from "route-trie";
 import { IRouteOptions } from "./Route";
 import { OpenRequest, OpenResponse } from "./contracts/core";
 
-class TrieRouter {
+export class TrieRouter {
   private endpoints = new Trie({
     ignoreCase: true,
     fixedPathRedirect: false,
@@ -16,8 +16,8 @@ class TrieRouter {
   }
 
   handle(req: OpenRequest, res: OpenResponse) {
-    const match = this.endpoints.match(req.path);
-    const route: IRouteOptions | undefined = match.node?.getHandler(req.method);
+    const match = this.endpoints.match(req.url!);
+    const route: IRouteOptions | undefined = match.node?.getHandler(req.method!);
     if (!match || !route) {
       res.statusCode = 404;
       res.write("404 Not Found!");
