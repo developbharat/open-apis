@@ -5,6 +5,8 @@ export type IOpenRequestBody = Record<string, string | number | boolean | IOpenR
 
 export interface OpenRequest extends IncomingMessage {
   readonly body: IOpenRequestBody;
+  readonly params: Record<string, string>;
+  readonly query: Record<string, string>;
 }
 
 export interface OpenResponse extends ServerResponse {}

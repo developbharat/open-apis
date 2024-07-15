@@ -24,6 +24,9 @@ export class TrieRouter {
       return;
     }
 
+    // Attach URL Params to request
+    (req as any).params = match.params;
+
     route.__handle(req, res);
   }
 }

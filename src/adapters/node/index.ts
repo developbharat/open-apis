@@ -42,6 +42,10 @@ export const nodeServerHandle =
     });
 
     const api = OpenServe(...options.endpoints);
+    const url = new URL(`http://localhost${req.url}`);
+
+    req.url = url.pathname; // No query should be available in request url.
     (req as any).body = form;
+    (req as any).query = Object.fromEntries(url.searchParams.entries());
     api.handle(req as OpenRequest, res);
   };
