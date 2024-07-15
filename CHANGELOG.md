@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Added node http server adapter
 - Added busboy for form data and files parsing
+- Added params and query field on OpenRequest
 
 ### Fixed
 
