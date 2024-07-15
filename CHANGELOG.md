@@ -7,25 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## 0.0.3 - 2024-07-15
 ### Added
-
 - Added node http server adapter
 - Added busboy for form data and files parsing
 - Added params and query field on OpenRequest
 
-### Fixed
+### Removed
+- Removed express adapter and its dependencies
 
+### Fixed
 - Renamed all http methods to uppercase to match nodejs convention.
 - Fixed tests cases and Improved codebase
 
-### Removed
-
-- Removed express adapter and its dependencies
-
 ## 0.0.2 - 2024-07-06
-
 ### Added
-
 - Added openapi schema support for routes
 - added adapter to generate openapi schema
 - added more tests to Route class
@@ -37,20 +33,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - added request param to Route Handle
 
 ### Fixed
-
 - Route was changed to Route() this prevented to use same instance of Routebuilder everywhere, which was a vulnerability
 - Fixed tests and Improved codebase
 
 ## 0.0.1 - 2024-06-18
-
 ### Added
-
 - Initial project setup with bun
 - added github actions to manually release package on npm
 - Added few starting tests for Route
 
 ### Fixed
-
 - Incomplete command for beta release in Github action
 - Code to install nodejs and npm in bun workflow
 - NPM Registry auth token issue in bun workflow

@@ -43,5 +43,5 @@
     "busboy": "^1.6.0",
     "route-trie": "^3.0.0"
   },
-  "version": "0.0.2"
+  "version": "0.0.3"
 }
